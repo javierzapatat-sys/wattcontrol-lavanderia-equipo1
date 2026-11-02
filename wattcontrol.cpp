@@ -162,3 +162,20 @@ public:
 };
 
 
+// ============================================================================
+// FUNCIÓN MAIN (Prueba de integración Módulo 2)
+// ============================================================================
+int main() {
+    cout << "=== PRUEBA MODULO 2: MEDIDOR Y MERCADO ===" << endl;
+    Mercado mercado;
+    Medidor medidor;
+
+    for (int h = 8; h <= 12; h++) {
+        float p = mercado.precioHora(h);
+        medidor.registrarConsumo(2.5f, p);
+        cout << "Hora " << h << ":00 | Precio: $" << p << " | Acumulado: $" << medidor.getCostoTotal() << endl;
+    }
+    return 0;
+}
+
+
