@@ -31,4 +31,49 @@ const int PICO_FIN = 20;                // Hora pico fin (8 pm)
 const int MIN_HORAS_APLAZ1 = 6;         // Mínimo horas al día Lavadora
 const int MIN_HORAS_APLAZ2 = 5;         // Mínimo horas al día Secadora
 
-const int FALLA_CADA = 20;              // 1 de cada 20 lecturas falla
+const int FALLA_CADA = 20;              // 1 de cada 20 lecturas falla// ============================================================================
+// 1. CLASE BASE ABSTRACTA: Carga
+// ============================================================================
+class Carga {
+protected:
+    string nombre;
+    float potenciaKW;
+    bool encendida;
+    int horasUso;
+
+public:
+    Carga(string n, float p) {
+        nombre = n;
+        potenciaKW = p;
+        encendida = false;
+        horasUso = 0;
+    }
+
+    virtual ~Carga() {}
+
+    // Polimorfismo: método virtual puro
+    virtual bool debeEncender(int hora, float precio, float embalses) = 0;
+
+    void encender() {
+        encendida = true;
+        horasUso++;
+    }
+
+    void apagar() {
+        encendida = false;
+    }
+
+    float costoHora(float precio) {
+        if (encendida) {
+            return potenciaKW * precio;
+        }
+        return 0.0f;
+    }
+
+    void reiniciarHoras() { horasUso = 0; }
+
+    string getNombre() { return nombre; }
+    float getPotencia() { return potenciaKW; }
+    bool estaEncendida() { return encendida; }
+    int getHorasUso() { return horasUso; }
+};
