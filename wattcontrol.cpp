@@ -76,4 +76,38 @@ public:
     float getPotencia() { return potenciaKW; }
     bool estaEncendida() { return encendida; }
     int getHorasUso() { return horasUso; }
+};// ============================================================================
+// 2. HERENCIA: CargaCritica
+// ============================================================================
+class CargaCritica : public Carga {
+public:
+    CargaCritica(string n, float p) : Carga(n, p) {}
+
+    // Regla 1: Nunca se apaga
+    bool debeEncender(int hora, float precio, float embalses) override {
+        return true;
+    }
+};
+
+// ============================================================================
+// 3. HERENCIA: CargaAplazable
+// ============================================================================
+class CargaAplazable : public Carga {
+private:
+    int horasMinimas;
+
+public:
+    CargaAplazable(string n, float p, int hMin) : Carga(n, p) {
+        horasMinimas = hMin;
+    }
+
+    // Reglas 2 a 5: Condición compuesta con operadores lógicos
+    bool debeEncender(int hora, float precio, float embalses) override {
+        bool horaPico = (hora >= PICO_INICIO && hora <= PICO_FIN);
+        bool condicionAplazamiento = (embalses < EMBALSES_ALERTA) || horaPico || (precio > PRECIO_CARO);
+        
+        return !condicionAplazamiento;
+    }
+
+    int getHorasMinimas() { return horasMinimas; }
 };
