@@ -111,3 +111,29 @@ public:
 
     int getHorasMinimas() { return horasMinimas; }
 };
+
+
+// ============================================================================
+// 4. COMPOSICIÓN: Medidor
+// ============================================================================
+class Medidor {
+private:
+    float totalKWh;
+    float costoTotal;
+
+public:
+    Medidor() : totalKWh(0.0f), costoTotal(0.0f) {}
+
+    void registrarConsumo(float kw, float precioHora) {
+        totalKWh += kw;
+        costoTotal += (kw * precioHora);
+    }
+
+    void reiniciar() {
+        totalKWh = 0.0f;
+        costoTotal = 0.0f;
+    }
+
+    float getTotalKWh() const { return totalKWh; }
+    float getCostoTotal() const { return costoTotal; }
+};
