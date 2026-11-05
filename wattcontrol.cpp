@@ -137,3 +137,28 @@ public:
     float getTotalKWh() const { return totalKWh; }
     float getCostoTotal() const { return costoTotal; }
 };
+
+
+// ============================================================================
+// 5. ASOCIACIÓN: Mercado
+// ============================================================================
+class Mercado {
+public:
+    float precioHora(int hora) const {
+        int minimo, maximo;
+        if (hora <= 6)       { minimo = 398; maximo = 640; }
+        else if (hora <= 14) { minimo = 456; maximo = 970; }
+        else if (hora <= 17) { minimo = 596; maximo = 1040; }
+        else if (hora <= 20) { minimo = 705; maximo = 1612; }
+        else                 { minimo = 565; maximo = 970; }
+
+        return static_cast<float>(minimo + rand() % (maximo - minimo + 1));
+    }
+
+    float nivelEmbalses(int hora) const {
+        float nivel = 50.0f - (hora * 0.5f);
+        return (nivel < 20.0f) ? 20.0f : nivel;
+    }
+};
+
+
