@@ -31,9 +31,7 @@ const int PICO_FIN = 20;                // Hora pico fin (8 pm)
 const int MIN_HORAS_APLAZ1 = 6;         // Mínimo horas al día Lavadora
 const int MIN_HORAS_APLAZ2 = 5;         // Mínimo horas al día Secadora
 
-const int FALLA_CADA = 20;              // 1 de cada 20 lecturas falla
-
-// ============================================================================
+const int FALLA_CADA = 20;              // 1 de cada 20 lecturas falla// ============================================================================
 // 1. CLASE BASE ABSTRACTA: Carga
 // ============================================================================
 class Carga {
@@ -78,9 +76,7 @@ public:
     float getPotencia() { return potenciaKW; }
     bool estaEncendida() { return encendida; }
     int getHorasUso() { return horasUso; }
-};
-
-// ============================================================================
+};// ============================================================================
 // 2. HERENCIA: CargaCritica
 // ============================================================================
 class CargaCritica : public Carga {
@@ -116,6 +112,7 @@ public:
     int getHorasMinimas() { return horasMinimas; }
 };
 
+
 // ============================================================================
 // 4. COMPOSICIÓN: Medidor
 // ============================================================================
@@ -141,6 +138,7 @@ public:
     float getCostoTotal() const { return costoTotal; }
 };
 
+
 // ============================================================================
 // 5. ASOCIACIÓN: Mercado
 // ============================================================================
@@ -163,8 +161,9 @@ public:
     }
 };
 
+
 // ============================================================================
-// 6. AGREGACIÓN, COMPOSICIÓN Y ASOCIACIÓN: Negocio (Lavandería)
+// 6. AGREGACIÓN, COMPOSICIÓN Y ASOCIACIÓN: Negocio (Lavandería) - Parte 1
 // ============================================================================
 class Negocio {
 private:
@@ -191,7 +190,7 @@ public:
         }
     }
 
-    void mostrar() const {
+    void mostrar() {
         cout << "Negocio: " << nombre << endl;
         cout << "Cargas registradas (" << numCargas << "):" << endl;
         for (int i = 0; i < numCargas; i++) {
@@ -208,7 +207,11 @@ public:
                  << ": " << (dec ? "ENCENDER" : "APAGAR / ESPERAR") << endl;
         }
     }
+    
 
+    // ============================================================================
+    // SIMULACIÓN 24H Y CONTROL DE DEMANDA - Parte 2 (Dentro de Negocio)
+    // ============================================================================
     void simularDia() {
         costoCon = 0.0f;
         costoSin = 0.0f;
@@ -237,9 +240,10 @@ public:
             float precio = mercado->precioHora(h);
             float embalses = mercado->nivelEmbalses(h);
 
+            // Escenario Sin Gestor: todas las cargas encendidas sin optimización
             costoSin += (POTENCIA_CRITICA + POTENCIA_APLAZ1 + POTENCIA_APLAZ2) * precio;
 
-            // Uso de break: Precio de escasez y alerta de embalses
+            // Uso de break: Interrupción por precio de escasez y alerta de embalses
             if (precio > PRECIO_ESCASEZ && embalses < EMBALSES_ALERTA) {
                 cout << setw(6) << (to_string(h) + ":00") 
                      << setw(12) << precio 
@@ -260,6 +264,7 @@ public:
                 continue;
             }
 
+            // Gestión inteligente y reglas operativas
             int horasRestantesDia = HORAS_DIA - h;
             bool deseoEncender[MAX_CARGAS];
 
@@ -269,6 +274,7 @@ public:
                 CargaAplazable* cap = dynamic_cast<CargaAplazable*>(cargas[i]);
                 bool estado = cap->debeEncender(h, precio, embalses);
 
+                // Regla de forzado por cumplimiento de horas mínimas
                 int faltantes = cap->getHorasMinimas() - cap->getHorasUso();
                 if (faltantes > 0 && horasRestantesDia <= faltantes) {
                     estado = true;
@@ -276,14 +282,15 @@ public:
                 deseoEncender[i] = estado;
             }
 
-            // Deslastre de Potencia Contratada (Máximo 11.0 kW)
+            // Control de Demanda / Potencia Contratada (Máximo 11.0 kW)
             float potenciaTotalPrevista = 0.0f;
             for (int i = 0; i < numCargas; i++) {
                 if (deseoEncender[i]) potenciaTotalPrevista += cargas[i]->getPotencia();
             }
 
             if (potenciaTotalPrevista > POTENCIA_CONTRATADA) {
-                if (deseoEncender[2]) deseoEncender[2] = false; // Deslastre: apaga secadora
+                // Deslastre: Apaga Secadora (menor prioridad) para no superar la potencia contratada
+                if (deseoEncender[2]) deseoEncender[2] = false;
             }
 
             float kwHoraActual = 0.0f;
@@ -310,31 +317,148 @@ public:
         }
 
         cout << "---------------------------------------------------------------------------------------" << endl;
-        cout << "Simulacion terminada." << endl;
-        cout << "Costo total con control inteligente: $" << costoCon << " COP" << endl;
-        cout << "Costo total sin control (lineal):    $" << costoSin << " COP" << endl;
-        cout << "Ahorro obtenido:                     $" << (costoSin - costoCon) << " COP" << endl;
+        cout << "Simulacion terminada. Vea el resumen detallado con la Opcion 4." << endl;
+    }
+
+
+    // ============================================================================
+    // REPORTE DE RESUMEN Y AHORRO - Parte 3 (Dentro de Negocio)
+    // ============================================================================
+    void resumen() {
+        cout << fixed << setprecision(2);
+        cout << "\n=======================================================================================" << endl;
+        cout << "                           RESUMEN DE CONSUMO Y AHORRO ENERGÉTICO                      " << endl;
+        cout << "=======================================================================================" << endl;
+        cout << "Negocio                 : " << nombre << endl;
+        cout << "Horas Simuladas         : " << horasSimuladas << " / " << HORAS_DIA << " horas" << endl;
+        cout << "Fallas de Sensor        : " << fallas << " eventos" << endl;
+        cout << "Consumo Total Registrado: " << medidor.getTotalKWh() << " kWh" << endl;
+        cout << "---------------------------------------------------------------------------------------" << endl;
+        cout << "DETALLE POR CARGA:" << endl;
+
+        for (int i = 0; i < numCargas; i++) {
+            float kwhEquipo = cargas[i]->getHorasUso() * cargas[i]->getPotencia();
+            cout << " - " << left << setw(20) << cargas[i]->getNombre()
+                 << ": " << setw(2) << cargas[i]->getHorasUso() << " h operadas | "
+                 << setw(6) << kwhEquipo << " kWh";
+
+            CargaAplazable* cap = dynamic_cast<CargaAplazable*>(cargas[i]);
+            if (cap) {
+                cout << " (Requeridas: " << cap->getHorasMinimas() << "h)";
+                if (cargas[i]->getHorasUso() >= cap->getHorasMinimas()) {
+                    cout << " [OK]";
+                } else {
+                    cout << " [INCOMPLETO]";
+                }
+            } else {
+                cout << " (Critica - 24h)";
+            }
+            cout << endl;
+        }
+
+        cout << "---------------------------------------------------------------------------------------" << endl;
+        cout << "COSTOS Y METRICAS DE AHORRO:" << endl;
+        cout << "Costo Con Gestor        : $" << costoCon << " COP" << endl;
+        cout << "Costo Sin Gestor        : $" << costoSin << " COP" << endl;
+
+        if (horasSimuladas > 0) {
+            cout << "Costo Promedio Por Hora : $" << (costoCon / horasSimuladas) << " COP/hora" << endl;
+        }
+
+        float ahorroCOP = costoSin - costoCon;
+        cout << "Ahorro Total Obtenido   : $" << ahorroCOP << " COP";
+
+        if (costoSin > 0) {
+            float porcentajeAhorro = (ahorroCOP / costoSin) * 100.0f;
+            cout << " (" << fixed << setprecision(1) << porcentajeAhorro << "%)";
+        }
+        cout << endl;
+        cout << "=======================================================================================\n" << endl;
     }
 };
 
 // ============================================================================
-// FUNCIÓN MAIN (Prueba de integración general)
+// 7. MAIN: Menú Interactivo do-while y switch (Sistema Completo)
 // ============================================================================
 int main() {
     srand(SEMILLA);
+
     Mercado mercado;
-    Negocio lavanderia("Lavanderia Automatizada El Nido", &mercado);
+    CargaCritica bomba("Bomba/Recep", POTENCIA_CRITICA);
+    CargaAplazable lavadora("Lavadora Ind", POTENCIA_APLAZ1, MIN_HORAS_APLAZ1);
+    CargaAplazable secadora("Secadora Ind", POTENCIA_APLAZ2, MIN_HORAS_APLAZ2);
 
-    // Registrar cargas institucionales
-    lavanderia.agregarCarga(new CargaCritica("Bomba/Recepcion", POTENCIA_CRITICA));
-    lavanderia.agregarCarga(new CargaAplazable("Lavadora Ind.", POTENCIA_APLAZ1, MIN_HORAS_APLAZ1));
-    lavanderia.agregarCarga(new CargaAplazable("Secadora Ind.", POTENCIA_APLAZ2, MIN_HORAS_APLAZ2));
+    Negocio negocio("Lavanderia WattControl", &mercado);
+    negocio.agregarCarga(&bomba);
+    negocio.agregarCarga(&lavadora);
+    negocio.agregarCarga(&secadora);
 
-    cout << "=== PRUEBA DE INTEGRACION WATTCONTROL V1 ===" << endl;
-    lavanderia.mostrar();
+    int horaManual = 12;
+    float embalsesManual = 50.0f;
+    float precioManual = 500.0f;
+    bool haySimulacion = false;
+    int opcion = 0;
 
-    // Ejecutar simulación completa de 24 horas
-    lavanderia.simularDia();
+    do {
+        cout << "\n===== WATTCONTROL V1 - GESTOR DE ENERGIA =====" << endl;
+        cout << "1. Ingresar lectura manual (Hora, Embalses, Precio)" << endl;
+        cout << "2. Evaluar decision de cada equipo" << endl;
+        cout << "3. Simular un dia completo (24 h)" << endl;
+        cout << "4. Ver resumen y ahorro" << endl;
+        cout << "0. Salir" << endl;
+        cout << "----------------------------------------------" << endl;
+        cout << "Opcion: ";
+        cin >> opcion;
+
+        switch (opcion) {
+            case 1:
+                do {
+                    cout << "Hora (0 a 23): ";
+                    cin >> horaManual;
+                    if (horaManual < 0 || horaManual > 23) cout << " [ERROR] Hora invalida." << endl;
+                } while (horaManual < 0 || horaManual > 23);
+
+                do {
+                    cout << "Nivel de embalses (0 a 100%): ";
+                    cin >> embalsesManual;
+                    if (embalsesManual < 0.0f || embalsesManual > 100.0f) cout << " [ERROR] Nivel invalido." << endl;
+                } while (embalsesManual < 0.0f || embalsesManual > 100.0f);
+
+                do {
+                    cout << "Precio de bolsa (COP/kWh > 0): ";
+                    cin >> precioManual;
+                    if (precioManual <= 0.0f) cout << " [ERROR] El precio debe ser mayor a 0." << endl;
+                } while (precioManual <= 0.0f);
+
+                cout << "Lectura guardada correctamente." << endl;
+                break;
+
+            case 2:
+                negocio.evaluar(horaManual, precioManual, embalsesManual);
+                break;
+
+            case 3:
+                negocio.simularDia();
+                haySimulacion = true;
+                break;
+
+            case 4:
+                if (haySimulacion) {
+                    negocio.resumen();
+                } else {
+                    cout << "Primero simule un dia con la opcion 3." << endl;
+                }
+                break;
+
+            case 0:
+                cout << "Hasta luego." << endl;
+                break;
+
+            default:
+                cout << "Opcion invalida." << endl;
+                break;
+        }
+    } while (opcion != 0);
 
     return 0;
 }
